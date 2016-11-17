@@ -32,11 +32,14 @@ public class ClientThread extends Thread {
                 System.out.println(clientData);
                 if (clientData != "") {
                     JSONObject object = new JSONObject(clientData);
-                    if (username == null) {
+                    if(object.has("username")) {
                         username = object.getString("username");
+                        server.put(username, this);
+                    }
+                    if(object.has("colour")){
                         color = object.getString("colour");
-                        server.put(username,this);
-                    } else {
+                    }
+                    if(object.has("message")){
                         server.send(object.getString("message"), username, color);
                     }
                 }
