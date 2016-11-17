@@ -1,3 +1,5 @@
+import org.json.JSONObject;
+
 import java.io.*;
 import java.net.Socket;
 
@@ -34,6 +36,7 @@ public class ClientThread extends Thread {
                 reader = new BufferedReader(
                         new InputStreamReader(socket.getInputStream()));
                 String clientData = "";
+                JSONObject object= new JSONObject();
                 clientData = reader.readLine();
                 if (clientData != "") {
                     server.send(clientData);
