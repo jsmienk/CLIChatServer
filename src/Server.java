@@ -9,22 +9,22 @@ public class Server {
     private static int SERVER_PORT = 1234;
     private ServerSocket serverSocket;
 
-    public void run(){
-        while(true) {
-            try {
-                serverSocket = new ServerSocket(SERVER_PORT);
-                System.out.println("Server started on port: " + SERVER_PORT);
+    public void run() {
+        try {
+            serverSocket = new ServerSocket(SERVER_PORT);
+            System.out.println("Server started on port: " + SERVER_PORT);
+            while (true) {
                 Socket socket = serverSocket.accept();
                 ClientThread ct = new ClientThread(socket);
                 ct.start();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
 
-    public static void main(String Args[]){
+    public static void main(String Args[]) {
         new Server().run();
     }
 }
