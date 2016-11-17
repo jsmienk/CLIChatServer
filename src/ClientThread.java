@@ -11,22 +11,13 @@ public class ClientThread extends Thread {
     private OutputStream os;
     private Server server;
     private PrintWriter writer;
+    private String username;
+    private String color;
 
     public ClientThread(Socket socket, Server server) {
         this.socket = socket;
         this.server = server;
-        server.put("1",this);
         System.out.println("Client connected");
-        try {
-            os = socket.getOutputStream();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        writer = new PrintWriter(os);
-        writer.println("Welkom bij de server");
-        writer.flush();
-
-
     }
 
     public void run() {
@@ -36,22 +27,34 @@ public class ClientThread extends Thread {
                 reader = new BufferedReader(
                         new InputStreamReader(socket.getInputStream()));
                 String clientData = "";
-                JSONObject object= new JSONObject();
+
                 clientData = reader.readLine();
+                System.out.println(clientData);
                 if (clientData != "") {
-                    server.send(clientData);
-                    System.out.println(clientData);
+                    JSONObject object = new JSONObject(clientData);
+                    if (username == null) {
+                        username = object.getString("username");
+                        color = object.getString("colour");
+                        server.put(username,this);
+                    } else {
+                        server.send(object.getString("message"), username, color);
+                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            // 1. Wacht op berichten van de client.
-            // 2. Stuur berichten van de clients door naar de andere
-            // clients. (Broadcast)
         }
     }
 
     public Socket getSocket() {
         return socket;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getColor() {
+        return color;
     }
 }

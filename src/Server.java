@@ -31,22 +31,23 @@ public class Server {
         }
     }
 
-    public void send(String message){
-        for (HashMap.Entry<String, ClientThread> entry : hashmap.entrySet())
-        {
-            Socket socket = entry.getValue().getSocket();
-            try {
-                os = socket.getOutputStream();
-            } catch (IOException e) {
-                e.printStackTrace();
+    public void send(String message, String username, String color) {
+        for (HashMap.Entry<String, ClientThread> entry : hashmap.entrySet()) {
+            if (!entry.getValue().getUsername().equals(username)) {
+                Socket socket = entry.getValue().getSocket();
+                try {
+                    os = socket.getOutputStream();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                writer = new PrintWriter(os);
+                writer.println("{ message: '"+message+"', username: '"+username+"', colour: '"+color+"' }");
+                writer.flush();
             }
-            writer = new PrintWriter(os);
-            writer.println(message);
-            writer.flush();
         }
     }
 
-    public void put(String username, ClientThread thread){
+    public void put(String username, ClientThread thread) {
         hashmap.put(username, thread);
     }
 
