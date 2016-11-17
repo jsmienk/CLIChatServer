@@ -12,8 +12,10 @@ public class ClientThread extends Thread{
         }
 
         public void run() {
-            // 1. Wacht op berichten van de client.
-            // 2. Stuur berichten van de clients door naar de andere
-            // clients. (Broadcast)
+                while(true) {
+                        // 1. Wacht op berichten van de client.
+                        // 2. Stuur berichten van de clients door naar de andere
+                        // clients. (Broadcast)
+                }
         }
 }

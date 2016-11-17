@@ -10,14 +10,16 @@ public class Server {
     private ServerSocket serverSocket;
 
     public void run(){
-        try {
-            serverSocket = new ServerSocket(SERVER_PORT);
-            System.out.println("Server started on port: " + SERVER_PORT);
-            Socket socket = serverSocket.accept();
-            ClientThread ct = new ClientThread(socket);
-            ct.start();
-        } catch (IOException e) {
-            e.printStackTrace();
+        while(true) {
+            try {
+                serverSocket = new ServerSocket(SERVER_PORT);
+                System.out.println("Server started on port: " + SERVER_PORT);
+                Socket socket = serverSocket.accept();
+                ClientThread ct = new ClientThread(socket);
+                ct.start();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
