@@ -105,7 +105,8 @@ class ClientThread extends Thread {
                         server.removeClient(user);
                     }
                 } catch (SocketException e) {
-
+                    connected = false;
+                    server.removeClient(user);
                 }
             }
 
