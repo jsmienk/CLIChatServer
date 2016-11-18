@@ -187,5 +187,9 @@ public class Server {
             connect(user,thread);
         }
     }
+
+    void removeClient(User user){
+        clients.remove(user);
+    }
 }
 
