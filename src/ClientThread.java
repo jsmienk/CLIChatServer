@@ -56,60 +56,58 @@ class ClientThread extends Thread {
                             System.err.println("Received data not in JSON!");
                         }
 
-                        if (user != null && clientJSON.has("username")) {
-                            final String username = clientJSON.optString("username", "default");
-                            user.setUsername(username);
-                            server.checkExists(user, this);
-                        }
-
-                        if (user != null && clientJSON.has("colour")) {
-                            final String colour = clientJSON.optString("colour", user.getColour());
-                            user.setColour(colour);
-                            try {
-                                final OutputStream os = socket.getOutputStream();
-                                final PrintWriter writer = new PrintWriter(os);
-
-                                final JSONObject json = new JSONObject();
-                                json.put("message", "Colour Changed to: " + colour);
-                                json.put("username", "Server");
-                                json.put("colour", "RED");
-
-                                writer.println(json.toString());
-                                writer.flush();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        // set the user that is connected through this client
+                        // create a user the first time this client connects
                         if (user == null && clientJSON.has("username") && clientJSON.has("colour")) {
                             final String username = clientJSON.optString("username", "default");
                             final String colour = clientJSON.optString("colour", "BLACK");
-                            user = new User(username, colour);
-                            server.checkExists(user, this);
+                            final User temp = new User(username, colour);
+                            if (!server.checkUsernameExist(temp)) {
+                                user = temp;
+                                server.connect(user, this);
+                            } else
+                                sendError("username-exists");
+                            continue;
                         }
 
-                        // if the user is set and we get a message, forward it
-                        if (user != null && clientJSON.has("message"))
+                        // if the user is already set, change the username
+                        if (user != null && clientJSON.has("username")) {
+                            final String username = clientJSON.optString("username", "default");
+                            if (!server.checkUsernameExist(user))
+                                user.setUsername(username);
+                            else
+                                sendError("username-exists");
+                            continue;
+                        }
+
+                        // if the user is already set, change the user colour
+                        if (user != null && clientJSON.has("colour")) {
+                            final String colour = clientJSON.optString("colour", "BLACK");
+                            user.setColour(colour);
+                            continue;
+                        }
+
+                        // if we get a message, forward it
+                        if (user != null && clientJSON.has("message")) {
                             server.forward(user, clientJSON.optString("message", ""));
+                            continue;
+                        }
 
+                        // private message
                         if (user != null && clientJSON.has("to") && clientJSON.has("whisper")) {
-                            server.whisper(clientJSON.getString("to"), clientJSON.getString("whisper"), socket, user);
+                            server.whisper(clientJSON.optString("to", ""), clientJSON.optString("whisper", ""), socket, user);
+                            continue;
                         }
 
+                        // action message
                         if (user != null && clientJSON.has("me")) {
-                            server.me(clientJSON.getString("me"), user);
+                            server.me(clientJSON.optString("me", ""), user);
                         }
-                    } else {
-                        connected = false;
-                        server.removeClient(user);
                     }
-                } catch (SocketException e) {
+                } catch (SocketException se) {
                     connected = false;
                     server.removeClient(user);
                 }
             }
-
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
@@ -121,5 +119,20 @@ class ClientThread extends Thread {
 
     Socket getSocket() {
         return socket;
+    }
+
+    private void sendError(final String error) {
+        if (error != null && !error.isEmpty()) {
+            try {
+                final JSONObject json = new JSONObject();
+                json.put("error", error);
+
+                final PrintWriter writer = new PrintWriter(socket.getOutputStream());
+                writer.println(json.toString());
+                writer.flush();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
     }
 }
