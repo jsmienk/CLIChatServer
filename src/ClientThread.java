@@ -50,6 +50,13 @@ class ClientThread extends Thread {
                             if (!server.checkUsernameExist(username)) {
                                 user = temp;
                                 server.connect(user, this);
+
+                                final JSONObject json = new JSONObject();
+                                json.put("accept", "accept");
+
+                                final PrintWriter writer = new PrintWriter(socket.getOutputStream());
+                                writer.println(json.toString());
+                                writer.flush();
                             } else
                                 sendError("username-exists");
                             continue;
