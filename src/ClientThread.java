@@ -20,6 +20,20 @@ class ClientThread extends Thread {
     ClientThread(Socket socket, Server server) {
         this.socket = socket;
         this.server = server;
+        try {
+            final OutputStream os = socket.getOutputStream();
+            final PrintWriter writer = new PrintWriter(os);
+
+            final JSONObject json = new JSONObject();
+            json.put("message", "Connected!");
+            json.put("username", "Server");
+            json.put("colour", "RED");
+
+            writer.println(json.toString());
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void run() {
@@ -52,6 +66,14 @@ class ClientThread extends Thread {
                     // if the user is set and we get a message, forward it
                     if (user != null && clientJSON.has("message"))
                         server.forward(user, clientJSON.optString("message", ""));
+
+                    if (user !=null && clientJSON.has("to") && clientJSON.has("whisper")){
+                        server.whisper(clientJSON.getString("to"), clientJSON.getString("whisper"), socket,user);
+                    }
+
+                    if (user !=null && clientJSON.has("me")){
+                        server.me(clientJSON.getString("me"), user);
+                    }
                 }
             }
         } catch (IOException ioe) {

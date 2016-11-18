@@ -78,6 +78,81 @@ public class Server {
         });
     }
 
+    /*
+    * Whispers something to a given user.
+    * if user not found, send it back.
+    * @param message, is the message
+    * @param username, is the username
+    * @param socket, the socket
+     */
+    void whisper(String username, String message, Socket socket, User user){
+        //loop a Map
+        boolean isFound = false;
+        for (Map.Entry<User, ClientThread> entry : clients.entrySet()) {
+            if(entry.getValue().getUser().getUsername().equalsIgnoreCase(username)){
+                try {
+                    final OutputStream os = entry.getValue().getSocket().getOutputStream();
+                    final PrintWriter writer = new PrintWriter(os);
+
+                    final JSONObject json = new JSONObject();
+                    json.put("message", message);
+                    json.put("username", "@"+user.getUsername());
+                    json.put("colour", user.getColour());
+
+                    writer.println(json.toString());
+                    writer.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                isFound = true;
+                break;
+            }
+        }
+        if(!isFound){
+            try {
+                final OutputStream os = socket.getOutputStream();
+                final PrintWriter writer = new PrintWriter(os);
+
+                final JSONObject json = new JSONObject();
+                json.put("message", "Couldn't find the user: " + username);
+                json.put("username", "server");
+                json.put("colour", "RED");
+
+                writer.println(json.toString());
+                writer.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /*
+     *Sends a doing message
+     * @param action, the action
+     * @param from, the user
+      */
+    void me(String action, User from){
+        // iterate through all users
+        // if the user is not the one that send the message
+        clients.values().stream().filter(ct -> ct.getUser() != from).forEach(ct -> {
+            final Socket clientSocket = ct.getSocket();
+            try {
+                final OutputStream os = clientSocket.getOutputStream();
+                final PrintWriter writer = new PrintWriter(os);
+
+                final JSONObject json = new JSONObject();
+
+                json.put("me",from.getUsername() + " " + action);
+                json.put("colour", from.getColour());
+
+                writer.println(json.toString());
+                writer.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     /**
      * Save a client connection by a User
      *
