@@ -61,6 +61,25 @@ class ClientThread extends Thread {
                         server.checkExists(user,this);
                     }
 
+                    if(user != null && clientJSON.has("colour")){
+                        final String colour = clientJSON.optString("colour", user.getColour());
+                        user.setColour(colour);
+                        try {
+                            final OutputStream os = socket.getOutputStream();
+                            final PrintWriter writer = new PrintWriter(os);
+
+                            final JSONObject json = new JSONObject();
+                            json.put("message", "Colour Changed to: "+colour);
+                            json.put("username", "Server");
+                            json.put("colour", "RED");
+
+                            writer.println(json.toString());
+                            writer.flush();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                     // set the user that is connected through this client
                     if (user == null && clientJSON.has("username") && clientJSON.has("colour")) {
                         final String username = clientJSON.optString("username", "default");

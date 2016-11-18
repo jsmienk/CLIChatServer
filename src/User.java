@@ -21,6 +21,10 @@ class User {
         this.username = username;
     }
 
+    public void setColour(String colour) {
+        this.colour = colour;
+    }
+
     String getColour() {
         return colour;
     }
