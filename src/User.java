@@ -4,9 +4,9 @@
  */
 class User {
 
-    private final String username;
+    private String username;
 
-    private final String colour;
+    private String colour;
 
     User(String username, String colour) {
         this.username = username;
@@ -15,6 +15,10 @@ class User {
 
     String getUsername() {
         return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     String getColour() {

@@ -55,12 +55,18 @@ class ClientThread extends Thread {
                         System.err.println("Received data not in JSON!");
                     }
 
+                    if(user != null && clientJSON.has("username")){
+                        final String username = clientJSON.optString("username", "default");
+                        user.setUsername(username);
+                        server.checkExists(user,this);
+                    }
+
                     // set the user that is connected through this client
                     if (user == null && clientJSON.has("username") && clientJSON.has("colour")) {
                         final String username = clientJSON.optString("username", "default");
                         final String colour = clientJSON.optString("colour", "BLACK");
                         user = new User(username, colour);
-                        server.connect(user, this);
+                        server.checkExists(user,this);
                     }
 
                     // if the user is set and we get a message, forward it

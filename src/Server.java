@@ -85,18 +85,18 @@ public class Server {
     * @param username, is the username
     * @param socket, the socket
      */
-    void whisper(String username, String message, Socket socket, User user){
+    void whisper(String username, String message, Socket socket, User user) {
         //loop a Map
         boolean isFound = false;
         for (Map.Entry<User, ClientThread> entry : clients.entrySet()) {
-            if(entry.getValue().getUser().getUsername().equalsIgnoreCase(username)){
+            if (entry.getValue().getUser().getUsername().equalsIgnoreCase(username)) {
                 try {
                     final OutputStream os = entry.getValue().getSocket().getOutputStream();
                     final PrintWriter writer = new PrintWriter(os);
 
                     final JSONObject json = new JSONObject();
                     json.put("message", message);
-                    json.put("username", "@"+user.getUsername());
+                    json.put("username", "@" + user.getUsername());
                     json.put("colour", user.getColour());
 
                     writer.println(json.toString());
@@ -108,7 +108,7 @@ public class Server {
                 break;
             }
         }
-        if(!isFound){
+        if (!isFound) {
             try {
                 final OutputStream os = socket.getOutputStream();
                 final PrintWriter writer = new PrintWriter(os);
@@ -131,7 +131,7 @@ public class Server {
      * @param action, the action
      * @param from, the user
       */
-    void me(String action, User from){
+    void me(String action, User from) {
         // iterate through all users
         // if the user is not the one that send the message
         clients.values().stream().filter(ct -> ct.getUser() != from).forEach(ct -> {
@@ -142,7 +142,7 @@ public class Server {
 
                 final JSONObject json = new JSONObject();
 
-                json.put("me",from.getUsername() + " " + action);
+                json.put("me", from.getUsername() + " " + action);
                 json.put("colour", from.getColour());
 
                 writer.println(json.toString());
@@ -162,4 +162,30 @@ public class Server {
     void connect(User user, ClientThread thread) {
         if (!user.getUsername().equals("default")) clients.put(user, thread);
     }
+
+    void checkExists(User user, ClientThread thread) {
+        boolean doesExist = false;
+        for (Map.Entry<User, ClientThread> entry : clients.entrySet()) {
+            if (entry.getValue().getUser().getUsername().equalsIgnoreCase(user.getUsername())) {
+                try {
+                    final OutputStream os = thread.getSocket().getOutputStream();
+                    final PrintWriter writer = new PrintWriter(os);
+
+                    final JSONObject json = new JSONObject();
+
+                    json.put("error", "userexists");
+
+                    writer.println(json.toString());
+                    writer.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                doesExist = true;
+            }
+        }
+        if(!doesExist){
+            connect(user,thread);
+        }
+    }
 }
+
