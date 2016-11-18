@@ -136,25 +136,39 @@ public class Server {
      * @param from   the user
      */
     void me(String action, User from) {
-        // iterate through all users
-        // if the user is not the one that send the message
-        clients.values().forEach(ct -> {
-            final Socket clientSocket = ct.getSocket();
-            try {
-                final OutputStream os = clientSocket.getOutputStream();
-                final PrintWriter writer = new PrintWriter(os);
+        final JSONObject json = new JSONObject();
 
-                final JSONObject json = new JSONObject();
+        json.put("me", from.getUsername() + " " + action);
+        json.put("colour", from.getColour());
+        sendToAll(json);
+    }
 
-                json.put("me", from.getUsername() + " " + action);
-                json.put("colour", from.getColour());
+    /**
+     * Send a message that a certain user has changed their colour
+     *
+     * @param user      the user that changed their colour
+     * @param oldColour the old colour
+     */
+    void changedColour(User user, String oldColour) {
+        final JSONObject json = new JSONObject();
 
-                writer.println(json.toString());
-                writer.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        json.put("me", "[SERVER]: " + user.getUsername() + " changed their colour to " + user.getColour().toUpperCase());
+        json.put("colour", oldColour);
+        sendToAll(json);
+    }
+
+    /**
+     * Send a message that a certain user has changed their username
+     *
+     * @param user        the user that changed their colour
+     * @param oldUsername the old username
+     */
+    void changedUsername(User user, String oldUsername) {
+        final JSONObject json = new JSONObject();
+
+        json.put("me", "[SERVER]: " + oldUsername + " changed their username to " + user.getUsername());
+        json.put("colour", user.getColour());
+        sendToAll(json);
     }
 
     /**
@@ -164,7 +178,7 @@ public class Server {
      * @param thread the thread the user is connected on
      */
     void connect(User user, ClientThread thread) {
-        if (!user.getUsername().equals("default")) clients.put(user, thread);
+        if (!user.getUsername().isEmpty()) clients.put(user, thread);
     }
 
     /**
@@ -176,7 +190,7 @@ public class Server {
 
         // iterate through all clients
         for (ClientThread ct : clients.values()) {
-            if (ct.getUser().getUsername().equalsIgnoreCase(username)) {
+            if (ct.getUser().getUsername().equals(username)) {
                 return true;
             }
         }
@@ -192,5 +206,26 @@ public class Server {
         if (user != null) System.err.println("User with username '" + user.getUsername() + "' disconnected.");
         clients.get(user).getSocket().close();
         clients.remove(user);
+    }
+
+    /**
+     * Send a certain json message to all users
+     *
+     * @param json the message to send
+     */
+    private void sendToAll(JSONObject json) {
+        // iterate through all users
+        clients.values().forEach(ct -> {
+            final Socket clientSocket = ct.getSocket();
+            try {
+                final OutputStream os = clientSocket.getOutputStream();
+                final PrintWriter writer = new PrintWriter(os);
+
+                writer.println(json.toString());
+                writer.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

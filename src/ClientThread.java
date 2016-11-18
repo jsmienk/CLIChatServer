@@ -44,7 +44,7 @@ class ClientThread extends Thread {
 
                         // create a user the first time this client connects
                         if (user == null && clientJSON.has("username") && clientJSON.has("colour")) {
-                            final String username = clientJSON.optString("username", "default");
+                            final String username = clientJSON.optString("username", "");
                             final String colour = clientJSON.optString("colour", "BLACK");
                             final User temp = new User(username, colour);
                             if (!server.checkUsernameExist(username)) {
@@ -63,10 +63,12 @@ class ClientThread extends Thread {
 
                         // if the user is already set, change the username
                         if (user != null && clientJSON.has("username")) {
-                            final String username = clientJSON.optString("username", "default");
-                            if (!server.checkUsernameExist(username))
+                            final String username = clientJSON.optString("username", "");
+                            if (!server.checkUsernameExist(username) && !user.getUsername().equals(username)) {
+                                final String old = user.getUsername();
                                 user.setUsername(username);
-                            else
+                                server.changedUsername(user, old);
+                            } else
                                 sendError("username-exists");
                             continue;
                         }
@@ -74,13 +76,19 @@ class ClientThread extends Thread {
                         // if the user is already set, change the user colour
                         if (user != null && clientJSON.has("colour")) {
                             final String colour = clientJSON.optString("colour", "BLACK");
+                            final String old = user.getColour();
                             user.setColour(colour);
+                            server.changedColour(user, old);
                             continue;
                         }
 
                         // private message
                         if (user != null && clientJSON.has("to") && clientJSON.has("whisper")) {
-                            server.whisper(clientJSON.optString("to", ""), clientJSON.optString("whisper", ""), socket, user);
+                            final String username = clientJSON.optString("username", "");
+                            if (server.checkUsernameExist(username))
+                                server.whisper(username, clientJSON.optString("whisper", ""), socket, user);
+                            else
+                                sendError("whisper-to-noone");
                             continue;
                         }
 
