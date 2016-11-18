@@ -1,63 +1,69 @@
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
 import java.net.Socket;
 
 /**
- * Created by sveno on 17-11-2016.
+ * Author: Sven & Jeroen
+ * Date created: 17-11-2016
  */
-public class ClientThread extends Thread {
-    private Socket socket;
-    private OutputStream os;
-    private Server server;
-    private PrintWriter writer;
-    private String username;
-    private String color;
+class ClientThread extends Thread {
 
-    public ClientThread(Socket socket, Server server) {
+    private Server server;
+
+    // the socket connected to this client
+    private Socket socket;
+
+    private User user;
+
+    ClientThread(Socket socket, Server server) {
         this.socket = socket;
         this.server = server;
-        System.out.println("Client connected");
     }
 
     public void run() {
-        while (socket.isConnected()) {
-            BufferedReader reader = null;
-            try {
-                reader = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream()));
-                String clientData = "";
+        try {
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                clientData = reader.readLine();
-                System.out.println(clientData);
-                if (clientData != "") {
-                    JSONObject object = new JSONObject(clientData);
-                    if(object.has("username")) {
-                        username = object.getString("username");
-                        server.put(username, this);
+            while (socket.isConnected()) {
+                final String clientData = reader.readLine();
+
+                System.out.println("Received: " + clientData);
+
+                if (clientData != null && !clientData.isEmpty()) {
+
+                    JSONObject clientJSON = new JSONObject();
+                    try {
+                        clientJSON = new JSONObject(clientData);
+                    } catch (JSONException je) {
+                        je.printStackTrace();
+                        System.err.println("Received data not in JSON!");
                     }
-                    if(object.has("colour")){
-                        color = object.getString("colour");
+
+                    // set the user that is connected through this client
+                    if (user == null && clientJSON.has("username") && clientJSON.has("colour")) {
+                        final String username = clientJSON.optString("username", "default");
+                        final String colour = clientJSON.optString("colour", "BLACK");
+                        user = new User(username, colour);
+                        server.connect(user, this);
                     }
-                    if(object.has("message")){
-                        server.send(object.getString("message"), username, color);
-                    }
+
+                    // if the user is set and we get a message, forward it
+                    if (user != null && clientJSON.has("message"))
+                        server.forward(user, clientJSON.optString("message", ""));
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
         }
     }
 
-    public Socket getSocket() {
+    User getUser() {
+        return user;
+    }
+
+    Socket getSocket() {
         return socket;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getColor() {
-        return color;
     }
 }

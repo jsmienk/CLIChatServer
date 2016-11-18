@@ -47,14 +47,14 @@ import java.util.Set;
  * form is a string wrapped in curly braces with colons between the names and
  * values, and commas between the values and names. The internal form is an
  * object having <code>get</code> and <code>opt</code> methods for accessing
- * the values by name, and <code>put</code> methods for adding or replacing
+ * the values by name, and <code>connect</code> methods for adding or replacing
  * values by name. The values can be any of these types: <code>Boolean</code>,
  * <code>JSONArray</code>, <code>JSONObject</code>, <code>Number</code>,
  * <code>String</code>, or the <code>JSONObject.NULL</code> object. A
  * JSONObject constructor can be used to convert an external form JSON text
  * into an internal form whose values can be retrieved with the
  * <code>get</code> and <code>opt</code> methods, or to convert values into a
- * JSON text using the <code>put</code> and <code>toString</code> methods. A
+ * JSON text using the <code>connect</code> and <code>toString</code> methods. A
  * <code>get</code> method returns a value if one can be found, and throws an
  * exception if one cannot be found. An <code>opt</code> method returns a
  * default value instead of throwing an exception, and so is useful for
@@ -66,12 +66,12 @@ import java.util.Set;
  * coercion for you. The opt methods differ from the get methods in that they
  * do not throw. Instead, they return a specified value, such as null.
  * <p>
- * The <code>put</code> methods add or replace values in an object. For
+ * The <code>connect</code> methods add or replace values in an object. For
  * example,
  *
  * <pre>
  * myString = new JSONObject()
- *         .put(&quot;JSON&quot;, &quot;Hello, World!&quot;).toString();
+ *         .connect(&quot;JSON&quot;, &quot;Hello, World!&quot;).toString();
  * </pre>
  *
  * produces the string <code>{"JSON": "Hello, World"}</code>.
@@ -257,7 +257,7 @@ public class JSONObject {
      * all of the public methods of the object. For each of the methods with no
      * parameters and a name starting with <code>"get"</code> or
      * <code>"is"</code> followed by an uppercase letter, the method is invoked,
-     * and a key and the value returned from the getter method are put into the
+     * and a key and the value returned from the getter method are connect into the
      * new JSONObject.
      *
      * The key is formed by removing the <code>"get"</code> or <code>"is"</code>
@@ -364,14 +364,14 @@ public class JSONObject {
     }
 
     /**
-     * Accumulate values under a key. It is similar to the put method except
+     * Accumulate values under a key. It is similar to the connect method except
      * that if there is already an object stored under the key then a JSONArray
      * is stored under the key to hold all of the accumulated values. If there
      * is already a JSONArray, then the new value is appended to it. In
-     * contrast, the put method replaces the previous value.
+     * contrast, the connect method replaces the previous value.
      *
      * If only one value is accumulated that is not a JSONArray, then the result
-     * will be the same as using put. But if multiple values are accumulated,
+     * will be the same as using connect. But if multiple values are accumulated,
      * then the result will be like append.
      *
      * @param key
@@ -399,7 +399,7 @@ public class JSONObject {
 
     /**
      * Append values to the array under a key. If the key does not exist in the
-     * JSONObject, then the key is put in the JSONObject with its value being a
+     * JSONObject, then the key is connect in the JSONObject with its value being a
      * JSONArray containing the value parameter. If the key was already
      * associated with a JSONArray, then the value parameter is appended to it.
      *

@@ -40,7 +40,7 @@ import java.util.Map;
  * A JSONArray is an ordered sequence of values. Its external text form is a
  * string wrapped in square brackets with commas separating the values. The
  * internal form is an object having <code>get</code> and <code>opt</code>
- * methods for accessing the values by index, and <code>put</code> methods for
+ * methods for accessing the values by index, and <code>connect</code> methods for
  * adding or replacing values. The values can be any of these types:
  * <code>Boolean</code>, <code>JSONArray</code>, <code>JSONObject</code>,
  * <code>Number</code>, <code>String</code>, or the
@@ -936,7 +936,7 @@ public class JSONArray implements Iterable<Object> {
      * @param index
      *            The subscript.
      * @param value
-     *            The value to put into the array. The value should be a
+     *            The value to connect into the array. The value should be a
      *            Boolean, Double, Integer, JSONArray, JSONObject, Long, or
      *            String, or the JSONObject.NULL object.
      * @return this.
