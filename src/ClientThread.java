@@ -21,20 +21,6 @@ class ClientThread extends Thread {
     ClientThread(Socket socket, Server server) {
         this.socket = socket;
         this.server = server;
-        try {
-            final OutputStream os = socket.getOutputStream();
-            final PrintWriter writer = new PrintWriter(os);
-
-            final JSONObject json = new JSONObject();
-            json.put("message", "Connected!");
-            json.put("username", "Server");
-            json.put("colour", "RED");
-
-            writer.println(json.toString());
-            writer.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public void run() {
@@ -61,7 +47,7 @@ class ClientThread extends Thread {
                             final String username = clientJSON.optString("username", "default");
                             final String colour = clientJSON.optString("colour", "BLACK");
                             final User temp = new User(username, colour);
-                            if (!server.checkUsernameExist(temp)) {
+                            if (!server.checkUsernameExist(username)) {
                                 user = temp;
                                 server.connect(user, this);
                             } else
@@ -69,10 +55,16 @@ class ClientThread extends Thread {
                             continue;
                         }
 
+                        // if we get a message, forward it
+                        if (user != null && clientJSON.has("message")) {
+                            server.forward(user, clientJSON.optString("message", ""));
+                            continue;
+                        }
+
                         // if the user is already set, change the username
                         if (user != null && clientJSON.has("username")) {
                             final String username = clientJSON.optString("username", "default");
-                            if (!server.checkUsernameExist(user))
+                            if (!server.checkUsernameExist(username))
                                 user.setUsername(username);
                             else
                                 sendError("username-exists");
@@ -86,12 +78,6 @@ class ClientThread extends Thread {
                             continue;
                         }
 
-                        // if we get a message, forward it
-                        if (user != null && clientJSON.has("message")) {
-                            server.forward(user, clientJSON.optString("message", ""));
-                            continue;
-                        }
-
                         // private message
                         if (user != null && clientJSON.has("to") && clientJSON.has("whisper")) {
                             server.whisper(clientJSON.optString("to", ""), clientJSON.optString("whisper", ""), socket, user);
@@ -102,7 +88,7 @@ class ClientThread extends Thread {
                         if (user != null && clientJSON.has("me")) {
                             server.me(clientJSON.optString("me", ""), user);
                         }
-                    }
+                    } else throw new SocketException();
                 } catch (SocketException se) {
                     connected = false;
                     server.removeClient(user);
@@ -121,6 +107,11 @@ class ClientThread extends Thread {
         return socket;
     }
 
+    /**
+     * Send an error message to this client
+     *
+     * @param error the error message
+     */
     private void sendError(final String error) {
         if (error != null && !error.isEmpty()) {
             try {

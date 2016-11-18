@@ -170,13 +170,13 @@ public class Server {
     /**
      * Check if a user already exists
      *
-     * @param user         the user to check
+     * @param username the username to check
      */
-    boolean checkUsernameExist(User user) {
+    boolean checkUsernameExist(final String username) {
 
         // iterate through all clients
         for (ClientThread ct : clients.values()) {
-            if (ct.getUser().getUsername().equalsIgnoreCase(user.getUsername())) {
+            if (ct.getUser().getUsername().equalsIgnoreCase(username)) {
                 return true;
             }
         }
@@ -189,17 +189,8 @@ public class Server {
      * @param user the user to remove
      */
     void removeClient(User user) throws IOException {
+        if (user != null) System.err.println("User with username '" + user.getUsername() + "' disconnected.");
         clients.get(user).getSocket().close();
         clients.remove(user);
-    }
-
-    /**
-     * Change the user that is set for a ClientThread
-     *
-     * @param user    the old user
-     * @param newUser the new user
-     */
-    void changeClient(User user, User newUser) {
-        clients.put(newUser, clients.remove(user));
     }
 }
