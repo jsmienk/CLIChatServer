@@ -14,7 +14,7 @@ import java.util.Map;
  */
 public class Server {
 
-    private static final int SERVER_PORT = 1234;
+    private static final int SERVER_PORT = 25565;
 
     private Map<User, ClientThread> clients;
 
@@ -190,7 +190,7 @@ public class Server {
 
         // iterate through all clients
         for (ClientThread ct : clients.values()) {
-            if (ct.getUser().getUsername().equals(username)) {
+            if (ct.getUser().getUsername().equalsIgnoreCase(username)) {
                 return true;
             }
         }
@@ -204,8 +204,10 @@ public class Server {
      */
     void removeClient(User user) throws IOException {
         if (user != null) System.err.println("User with username '" + user.getUsername() + "' disconnected.");
-        clients.get(user).getSocket().close();
-        clients.remove(user);
+        if(user!=null) {
+            clients.get(user).getSocket().close();
+            clients.remove(user);
+        }
     }
 
     /**
@@ -213,7 +215,7 @@ public class Server {
      *
      * @param json the message to send
      */
-    private void sendToAll(JSONObject json) {
+    void sendToAll(JSONObject json) {
         // iterate through all users
         clients.values().forEach(ct -> {
             final Socket clientSocket = ct.getSocket();

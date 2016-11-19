@@ -91,7 +91,7 @@ class ClientThread extends Thread {
 
                         // private message
                         if (user != null && clientJSON.has("to") && clientJSON.has("whisper")) {
-                            final String username = clientJSON.optString("username", "");
+                            final String username = clientJSON.optString("to", "");
                             if (server.checkUsernameExist(username))
                                 server.whisper(username, clientJSON.optString("whisper", ""), socket, user);
                             else
@@ -103,14 +103,37 @@ class ClientThread extends Thread {
                         if (user != null && clientJSON.has("me")) {
                             server.me(clientJSON.optString("me", ""), user);
                         }
-                    } else throw new SocketException();
+                    } else {
+                        connected = false;
+                        leaveChat();
+                    }
                 } catch (SocketException se) {
                     connected = false;
-                    server.removeClient(user);
+                    leaveChat();
                 }
             }
+
         } catch (IOException ioe) {
             ioe.printStackTrace();
+        }
+    }
+
+    /*
+    *   Broadcasts message that user have left the chat.
+    *
+     */
+    void leaveChat(){
+        if(user!=null) {
+            try {
+                server.removeClient(user);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            final JSONObject json = new JSONObject();
+            json.put("message", user.getUsername() + " has left the chat");
+            json.put("username", "Server");
+            json.put("colour", "RED");
+            server.sendToAll(json);
         }
     }
 
