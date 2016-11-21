@@ -16,11 +16,14 @@ public class Server {
 
     private static final int SERVER_PORT = 25565;
 
+    static String serverName;
+
     private Map<User, ClientThread> clients;
 
     // initialize the client map
     private Server() {
         clients = new HashMap<>();
+        serverName = "ChatServer";
     }
 
     // start the server when the program starts
@@ -79,16 +82,15 @@ public class Server {
     }
 
     /**
-     * Whispers something to a given user.
-     * if user not found, send it back.
+     * Whisper something to a certain user
      *
-     * @param message  is the message
-     * @param username is the username
-     * @param socket   the socket
+     * @param username the username of the user the whiper is send to
+     * @param message  the message that is whispered
+     * @param thread   the client that tries to whisper
+     * @param user     the user that tries to whisper
      */
-    void whisper(String username, String message, Socket socket, User user) {
+    void whisper(String username, String message, ClientThread thread, User user) {
         //loop a Map
-        boolean isFound = false;
         for (ClientThread ct : clients.values()) {
             if (ct.getUser().getUsername().equalsIgnoreCase(username)) {
                 try {
@@ -106,27 +108,12 @@ public class Server {
                     e.printStackTrace();
                 }
 
-                isFound = true;
-                break;
+                return;
             }
         }
 
-        if (!isFound) {
-            try {
-                final OutputStream os = socket.getOutputStream();
-                final PrintWriter writer = new PrintWriter(os);
-
-                final JSONObject json = new JSONObject();
-                json.put("message", "Couldn't find the user: " + username);
-                json.put("username", "server");
-                json.put("colour", "RED");
-
-                writer.println(json.toString());
-                writer.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        // send an error message
+        thread.sendError("User was not found.");
     }
 
     /**
@@ -152,8 +139,8 @@ public class Server {
     void changedColour(User user, String oldColour) {
         final JSONObject json = new JSONObject();
 
-        json.put("me", "[SERVER]: " + user.getUsername() + " changed their colour to " + user.getColour().toUpperCase());
-        json.put("colour", oldColour);
+        json.put("me", "[" + serverName + "]: " + user.getUsername() + " changed their colour to " + user.getColour().toUpperCase());
+        json.put("colour", "BLACK");
         sendToAll(json);
     }
 
@@ -166,8 +153,8 @@ public class Server {
     void changedUsername(User user, String oldUsername) {
         final JSONObject json = new JSONObject();
 
-        json.put("me", "[SERVER]: " + oldUsername + " changed their username to " + user.getUsername());
-        json.put("colour", user.getColour());
+        json.put("me", "[" + serverName + "]: " + oldUsername + " changed their username to " + user.getUsername());
+        json.put("colour", "BLACK");
         sendToAll(json);
     }
 
@@ -188,11 +175,13 @@ public class Server {
      */
     boolean checkUsernameExist(final String username) {
 
+        // not allowed to have the same name as the server
+        if (username.equals(serverName)) return true;
+
         // iterate through all clients
         for (ClientThread ct : clients.values()) {
-            if (ct.getUser().getUsername().equalsIgnoreCase(username)) {
+            if (ct.getUser().getUsername().equalsIgnoreCase(username))
                 return true;
-            }
         }
         return false;
     }
@@ -203,8 +192,8 @@ public class Server {
      * @param user the user to remove
      */
     void removeClient(User user) throws IOException {
-        if (user != null) System.err.println("User with username '" + user.getUsername() + "' disconnected.");
-        if(user!=null) {
+        if (user != null) {
+            System.err.println("User with username '" + user.getUsername() + "' disconnected.");
             clients.get(user).getSocket().close();
             clients.remove(user);
         }
