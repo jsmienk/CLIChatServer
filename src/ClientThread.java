@@ -155,6 +155,7 @@ class ClientThread extends Thread {
             try {
                 final JSONObject json = new JSONObject();
                 json.put("error", error);
+                json.put("server_name", Server.serverName);
 
                 final PrintWriter writer = new PrintWriter(socket.getOutputStream());
                 writer.println(json.toString());
