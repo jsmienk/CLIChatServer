@@ -103,6 +103,11 @@ class ClientThread extends Thread {
                         if (user != null && clientJSON.has("me")) {
                             server.me(clientJSON.optString("me", ""), user);
                         }
+
+                        // list request
+                        if (user != null && clientJSON.has("list")) {
+                            server.sendList(this);
+                        }
                     } else {
                         connected = false;
                         leaveChat();
@@ -125,12 +130,7 @@ class ClientThread extends Thread {
         if (user != null) {
             try {
                 server.removeClient(user);
-
-                final JSONObject json = new JSONObject();
-                json.put("message", user.getUsername() + " has left the chat.");
-                json.put("username", Server.serverName);
-                json.put("colour", "BLACK");
-                server.sendToAll(json);
+                server.forward(Server.server, user.getUsername() + " has left the chat.");
             } catch (IOException e) {
                 e.printStackTrace();
             }

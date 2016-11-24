@@ -1,3 +1,4 @@
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -16,14 +17,19 @@ public class Server {
 
     private static final int SERVER_PORT = 25565;
 
+    static User server;
     static String serverName;
+    private static String serverColour;
 
     private Map<User, ClientThread> clients;
 
     // initialize the client map
     private Server() {
+        server = new User("ChatServer", "BLACK");
+        serverName = server.getUsername();
+        serverColour = server.getColour();
+
         clients = new HashMap<>();
-        serverName = "ChatServer";
     }
 
     // start the server when the program starts
@@ -140,7 +146,7 @@ public class Server {
         final JSONObject json = new JSONObject();
 
         json.put("me", "[" + serverName + "]: " + user.getUsername() + " changed their colour to " + user.getColour().toUpperCase());
-        json.put("colour", "BLACK");
+        json.put("colour", serverColour);
         sendToAll(json);
     }
 
@@ -154,7 +160,7 @@ public class Server {
         final JSONObject json = new JSONObject();
 
         json.put("me", "[" + serverName + "]: " + oldUsername + " changed their username to " + user.getUsername());
-        json.put("colour", "BLACK");
+        json.put("colour", serverColour);
         sendToAll(json);
     }
 
@@ -166,6 +172,7 @@ public class Server {
      */
     void connect(User user, ClientThread thread) {
         if (!user.getUsername().isEmpty()) clients.put(user, thread);
+        forward(server, user.getUsername() + " joined the server.");
     }
 
     /**
@@ -204,19 +211,48 @@ public class Server {
      *
      * @param json the message to send
      */
-    void sendToAll(JSONObject json) {
+    private void sendToAll(JSONObject json) {
         // iterate through all users
         clients.values().forEach(ct -> {
-            final Socket clientSocket = ct.getSocket();
-            try {
-                final OutputStream os = clientSocket.getOutputStream();
-                final PrintWriter writer = new PrintWriter(os);
-
-                writer.println(json.toString());
-                writer.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            sendTo(json, ct);
         });
+    }
+
+    /**
+     * Send a list of all users to a certain client
+     *
+     * @param ct the client to send the list to
+     */
+    void sendList(ClientThread ct) {
+        final JSONObject userList = new JSONObject();
+        final JSONArray json = new JSONArray();
+        for (User u : clients.keySet()) {
+            final JSONObject user = new JSONObject();
+            user.put("username", u.getUsername());
+            user.put("colour", u.getColour());
+            json.put(user);
+        }
+
+        userList.put("userlist", json);
+        sendTo(userList, ct);
+    }
+
+    /**
+     * Send a message to a certain user
+     *
+     * @param json what to send
+     * @param ct   to whom
+     */
+    private void sendTo(JSONObject json, ClientThread ct) {
+        final Socket clientSocket = ct.getSocket();
+        try {
+            final OutputStream os = clientSocket.getOutputStream();
+            final PrintWriter writer = new PrintWriter(os);
+
+            writer.println(json.toString());
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
