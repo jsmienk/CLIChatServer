@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 /**
  * Author: Sven & Jeroen
@@ -23,12 +24,14 @@ public class Server {
 
     private Map<User, ClientThread> clients;
 
+    private Semaphore userAccess;
+
     // initialize the client map
     private Server() {
         server = new User("ChatServer", "BLACK");
         serverName = server.getUsername();
         serverColour = server.getColour();
-
+        userAccess = new Semaphore(0);
         clients = new HashMap<>();
     }
 
@@ -61,65 +64,80 @@ public class Server {
     /**
      * Forward a message to all other clients
      *
-     * @param from    the User that send the message
+     * @param from    the client that send the message
      * @param message the message that was send
      */
     void forward(User from, String message) {
 
-        // iterate through all users
-        // if the user is not the one that send the message
-        clients.values().stream().filter(ct -> ct.getUser() != from).forEach(ct -> {
-            final Socket clientSocket = ct.getSocket();
-            try {
-                final OutputStream os = clientSocket.getOutputStream();
-                final PrintWriter writer = new PrintWriter(os);
-
-                final JSONObject json = new JSONObject();
-                json.put("message", message);
-                json.put("username", from.getUsername());
-                json.put("colour", from.getColour());
-
-                writer.println(json.toString());
-                writer.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
-    /**
-     * Whisper something to a certain user
-     *
-     * @param username the username of the user the whiper is send to
-     * @param message  the message that is whispered
-     * @param thread   the client that tries to whisper
-     * @param user     the user that tries to whisper
-     */
-    void whisper(String username, String message, ClientThread thread, User user) {
-        //loop a Map
-        for (ClientThread ct : clients.values()) {
-            if (ct.getUser().getUsername().equalsIgnoreCase(username)) {
+        try {
+            userAccess.acquire();
+            // iterate through all users
+            // if the user is not the one that send the message
+            clients.values().stream().filter(ct -> ct.getUser() != from).forEach(ct -> {
+                final Socket clientSocket = ct.getSocket();
                 try {
-                    final OutputStream os = ct.getSocket().getOutputStream();
+                    final OutputStream os = clientSocket.getOutputStream();
                     final PrintWriter writer = new PrintWriter(os);
 
                     final JSONObject json = new JSONObject();
-                    json.put("whisper", message);
-                    json.put("from", user.getUsername());
-                    json.put("colour", user.getColour());
+                    json.put("message", message);
+                    json.put("username", from.getUsername());
+                    json.put("colour", from.getColour());
 
                     writer.println(json.toString());
                     writer.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            });
+            userAccess.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
-                return;
+    /**
+     * Whisper something to a certain client
+     *
+     * @param username the username of the client the whisper is send to
+     * @param message  the message that is whispered
+     * @param thread   the client that tries to whisper
+     * @param user     the client that tries to whisper
+     */
+    void whisper(String username, String message, ClientThread thread, User user) {
+
+        try {
+            userAccess.acquire();
+            //loop a Map
+            for (ClientThread ct : clients.values()) {
+                if (ct.getUser().getUsername().equalsIgnoreCase(username)) {
+                    try {
+                        final OutputStream os = ct.getSocket().getOutputStream();
+                        final PrintWriter writer = new PrintWriter(os);
+
+                        final JSONObject json = new JSONObject();
+                        json.put("whisper", message);
+                        json.put("from", user.getUsername());
+                        json.put("colour", user.getColour());
+
+                        writer.println(json.toString());
+                        writer.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    userAccess.release();
+                    return;
+                }
             }
+
+            // send an error message
+            thread.sendError("User was not found.");
+            userAccess.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
-        // send an error message
-        thread.sendError("User was not found.");
     }
 
     /**
@@ -137,7 +155,7 @@ public class Server {
     }
 
     /**
-     * Send a message that a certain user has changed their colour
+     * Send a message that a certain client has changed their colour
      *
      * @param user      the user that changed their colour
      * @param oldColour the old colour
@@ -151,7 +169,7 @@ public class Server {
     }
 
     /**
-     * Send a message that a certain user has changed their username
+     * Send a message that a certain client has changed their username
      *
      * @param user        the user that changed their colour
      * @param oldUsername the old username
@@ -165,18 +183,24 @@ public class Server {
     }
 
     /**
-     * Save a client connection by a User
+     * Save a client connection by a user
      *
      * @param user   the user that is connected on that thread
      * @param thread the thread the user is connected on
      */
     void connect(User user, ClientThread thread) {
-        if (!user.getUsername().isEmpty()) clients.put(user, thread);
-        forward(server, user.getUsername() + " joined the server.");
+        try {
+            userAccess.acquire();
+            if (!user.getUsername().isEmpty()) clients.put(user, thread);
+            forward(server, user.getUsername() + " joined the server.");
+            userAccess.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
-     * Check if a user already exists
+     * Check if a username already exists
      *
      * @param username the username to check
      */
@@ -185,10 +209,18 @@ public class Server {
         // not allowed to have the same name as the server
         if (username.equals(serverName)) return true;
 
-        // iterate through all clients
-        for (ClientThread ct : clients.values()) {
-            if (ct.getUser().getUsername().equalsIgnoreCase(username))
-                return true;
+        try {
+            userAccess.acquire();
+            // iterate through all clients
+            for (ClientThread ct : clients.values()) {
+                if (ct.getUser().getUsername().equalsIgnoreCase(username)) {
+                    userAccess.release();
+                    return true;
+                }
+            }
+            userAccess.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         return false;
     }
@@ -196,26 +228,39 @@ public class Server {
     /**
      * Remove a client from the map
      *
-     * @param user the user to remove
+     * @param user the client to remove
      */
     void removeClient(User user) throws IOException {
         if (user != null) {
-            System.err.println("User with username '" + user.getUsername() + "' disconnected.");
-            clients.get(user).getSocket().close();
-            clients.remove(user);
+            try {
+                userAccess.acquire();
+                System.err.println("User with username '" + user.getUsername() + "' disconnected.");
+                clients.get(user).getSocket().close();
+                clients.remove(user);
+                userAccess.release();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     /**
-     * Send a certain json message to all users
+     * Send a certain json message to all clients
      *
      * @param json the message to send
      */
     private void sendToAll(JSONObject json) {
-        // iterate through all users
-        clients.values().forEach(ct -> {
-            sendTo(json, ct);
-        });
+
+        try {
+            userAccess.acquire();
+            // iterate through all users
+            clients.values().forEach(ct -> {
+                sendTo(json, ct);
+            });
+            userAccess.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -224,21 +269,30 @@ public class Server {
      * @param ct the client to send the list to
      */
     void sendList(ClientThread ct) {
-        final JSONObject userList = new JSONObject();
-        final JSONArray json = new JSONArray();
-        for (User u : clients.keySet()) {
-            final JSONObject user = new JSONObject();
-            user.put("username", u.getUsername());
-            user.put("colour", u.getColour());
-            json.put(user);
-        }
 
-        userList.put("userlist", json);
-        sendTo(userList, ct);
+        try {
+            userAccess.acquire();
+
+            final JSONObject userList = new JSONObject();
+            final JSONArray json = new JSONArray();
+            for (User u : clients.keySet()) {
+                final JSONObject user = new JSONObject();
+                user.put("username", u.getUsername());
+                user.put("colour", u.getColour());
+                json.put(user);
+            }
+
+            userList.put("userlist", json);
+            sendTo(userList, ct);
+
+            userAccess.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
-     * Send a message to a certain user
+     * Send a message to a certain client
      *
      * @param json what to send
      * @param ct   to whom

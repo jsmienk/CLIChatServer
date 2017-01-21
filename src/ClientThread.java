@@ -38,7 +38,7 @@ class ClientThread extends Thread {
                         try {
                             clientJSON = new JSONObject(clientData);
                         } catch (JSONException je) {
-                            je.printStackTrace();
+//                            je.printStackTrace();
                             System.err.println("Received data not in JSON!");
                         }
 
