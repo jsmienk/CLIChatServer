@@ -4,7 +4,12 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/out" isTestSource="false" generated="true" />
     </content>
+    <content url="file://$MODULE_DIR$/out" />
+    <content url="file://$MODULE_DIR$/out/production" />
+    <content url="file://$MODULE_DIR$/out/production/ChatServer" />
+    <content url="file://$MODULE_DIR$/out/production/ChatServer/org" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
